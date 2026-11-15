@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block page_title %}My Reports{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex align-items-center">
+    <h3 class="card-title me-auto">Generated reports</h3>
+    <a class="btn btn-sm btn-primary" href="{% url 'analysis:home' %}"><i class="bi bi-plus-lg"></i> New report from Analysis</a>
+  </div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Created</th><th>Filters</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for t in tasks %}
+        <tr>
+          <td>{{ t.created|date:"Y-m-d H:i" }}</td>
+          <td class="small text-body-secondary">{% for k, v in t.params.items %}{% if v %}{{ k }}: {{ v }}{% if not forloop.last %}; {% endif %}{% endif %}{% endfor %}</td>
+          <td><span class="badge {% if t.status == 'SUCCESS' %}text-bg-success{% elif t.status == 'FAILURE' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ t.status }}</span></td>
+          <td>{% if t.status == 'SUCCESS' %}<a href="{% url 'reports:download' t.id %}"><i class="bi bi-download"></i> CSV</a>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center text-body-secondary py-3">No reports yet. Run a search in Analysis and choose “Generate report”.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

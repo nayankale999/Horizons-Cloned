@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block page_title %}Import data{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-xl-5">
+    <form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}
+      <div class="card-header"><h3 class="card-title">Upload products</h3></div>
+      <div class="card-body">
+        <p class="small text-body-secondary">
+          CSV or Excel (.xlsx, first sheet), one row per product × region.
+          Required columns: <code>active_substance</code>, <code>dosage_form</code>, <code>region</code>,
+          plus <code>indication</code> for new products.
+          Empty cells leave existing values unchanged. A report CSV from My Reports can be edited and re-imported.
+        </p>
+        <div class="mb-3">
+          <label class="form-label" for="f-file">File</label>
+          <input type="file" id="f-file" name="file" accept=".csv,.xlsx,.xlsm,.txt" class="form-control" required>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="create_lookups" id="f-cl" value="1" {% if opts.create_lookups %}checked{% endif %}>
+          <label class="form-check-label" for="f-cl">Create unknown indications, dosage forms, regions, keywords and excipients</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="skip_invalid" id="f-si" value="1" {% if opts.skip_invalid %}checked{% endif %}>
+          <label class="form-check-label" for="f-si">Import valid rows even if some rows have errors</label>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <button class="btn btn-primary"><i class="bi bi-eye"></i> Preview</button>
+        <a class="btn btn-outline-secondary ms-auto" href="{% url 'products:import_template' %}"><i class="bi bi-download"></i> CSV template</a>
+      </div>
+    </form>
+  </div>
+
+  {% if result %}
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Preview: {{ filename }}</h3></div>
+      <div class="card-body">
+        <div class="row text-center g-2 mb-3">
+          <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-4">{{ result.rows_imported }}/{{ result.rows }}</div><div class="small text-body-secondary">rows importable</div></div></div>
+          <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-4">{{ result.products_created }} / {{ result.products_updated }}</div><div class="small text-body-secondary">products new / updated</div></div></div>
+          <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-4">{{ result.markets_created }} / {{ result.markets_updated }}</div><div class="small text-body-secondary">markets new / updated</div></div></div>
+          <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-4 {% if result.errors %}text-danger{% endif %}">{{ result.errors|length }}</div><div class="small text-body-secondary">errors</div></div></div>
+        </div>
+        {% if result.lookups_created %}
+          <p class="small mb-2">New reference values: {% for k, v in result.lookups_created.items %}{{ v }} {{ k }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+        <p class="small mb-2">Columns used: {{ result.columns|join:", " }}</p>
+        {% if result.ignored_columns %}<p class="small text-warning mb-2">Ignored columns: {{ result.ignored_columns|join:", " }}</p>{% endif %}
+
+        {% if errors %}
+          <div class="table-responsive" style="max-height: 22rem">
+            <table class="table table-sm mb-0">
+              <thead class="sticky-top"><tr><th>Row</th><th>Column</th><th>Problem</th></tr></thead>
+              <tbody>{% for e in errors %}<tr><td>{{ e.row }}</td><td><code>{{ e.column }}</code></td><td>{{ e.message }}</td></tr>{% endfor %}</tbody>
+            </table>
+          </div>
+          {% if result.errors|length > errors|length %}<p class="small text-body-secondary mt-2">Showing the first {{ errors|length }} of {{ result.errors|length }} errors.</p>{% endif %}
+        {% endif %}
+      </div>
+      <div class="card-footer d-flex gap-2">
+        {% if can_apply %}
+          <form method="post" action="{% url 'products:import_confirm' %}">{% csrf_token %}
+            <button class="btn btn-success"><i class="bi bi-check2"></i> Import {{ result.rows_imported }} row{{ result.rows_imported|pluralize }}</button>
+          </form>
+          <form method="post" action="{% url 'products:import_cancel' %}">{% csrf_token %}
+            <button class="btn btn-outline-secondary">Cancel</button>
+          </form>
+        {% else %}
+          <span class="text-body-secondary small">Nothing can be imported yet. Fix the errors, or tick the options on the left, and preview again.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

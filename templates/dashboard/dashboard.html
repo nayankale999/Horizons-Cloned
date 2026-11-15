@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+{% if ticker %}
+<div class="ticker mb-3"><div class="ticker-track">
+  {% for m in ticker %}<span class="me-5">{{ m.product.active_substance }} · {{ m.region.name }} · generic launch {{ m.earliest_generic_launch|date:"M Y" }}</span>{% endfor %}
+</div></div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  {% url 'analysis:home' as u_an %}{% url 'products:playarea' as u_pa %}{% url 'products:portfolio' as u_pf %}{% url 'reports:home' as u_rep %}
+  <div class="col-6 col-lg-3"><a href="{{ u_an }}" class="tile"><i class="bi bi-pie-chart-fill"></i> Analysis</a></div>
+  <div class="col-6 col-lg-3"><a href="{{ u_pa }}" class="tile"><i class="bi bi-boxes"></i> Play Area <span class="badge text-bg-secondary">{{ counts.playarea|default:0 }}</span></a></div>
+  <div class="col-6 col-lg-3"><a href="{{ u_pf }}" class="tile"><i class="bi bi-briefcase-fill"></i> My Portfolio <span class="badge text-bg-secondary">{{ counts.portfolio|default:0 }}</span></a></div>
+  <div class="col-6 col-lg-3"><a href="{{ u_rep }}" class="tile"><i class="bi bi-bar-chart-fill"></i> My Reports</a></div>
+</div>
+
+<div class="row g-3">
+  {% for panel in panels %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title fs-6">{{ panel.title }} <span class="text-body-secondary">(next {{ window_days }} days)</span></h3></div>
+      <ul class="list-group list-group-flush panel-list">
+        {% for m in panel.markets %}
+          <li class="list-group-item small">
+            <a href="{% url 'analysis:home' %}?product={{ m.product.active_substance|urlencode }}">{{ m.product.active_substance }}</a>
+            <span class="text-body-secondary">({{ m.product.dosage_form.name }})</span>
+          </li>
+        {% empty %}
+          <li class="list-group-item small text-body-secondary">Nothing in this window.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

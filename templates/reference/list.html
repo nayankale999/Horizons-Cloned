@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+    <h3 class="card-title me-auto">{{ title }}</h3>
+    <form method="get" class="d-flex gap-2" role="search">
+      <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search {{ title|lower }}" aria-label="Search">
+      <button class="btn btn-sm btn-primary">Search</button>
+    </form>
+  </div>
+  <div class="card-body p-0 table-responsive">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr>{% if show_color %}<th style="width:6rem">Colour</th>{% endif %}<th>Name</th><th>Description</th></tr></thead>
+      <tbody>
+      {% for item in page %}
+        <tr>
+          {% if show_color %}<td><span class="swatch" style="background: {{ item.bg_color }}"></span></td>{% endif %}
+          <td>{{ item.name }}</td><td class="text-body-secondary">{{ item.description }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="text-center text-body-secondary py-3">No matches.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}
+  <div class="card-footer d-flex justify-content-between align-items-center small">
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} items</span>
+    <span>
+      {% if page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="?q={{ q|urlencode }}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
+      {% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?q={{ q|urlencode }}&page={{ page.next_page_number }}">Next</a>{% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

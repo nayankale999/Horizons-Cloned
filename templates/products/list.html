@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+{% block page_title %}{{ kind_label }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <ul class="nav nav-pills me-auto">
+    {% for l in lists %}
+      <li class="nav-item">
+        <a class="nav-link {% if l.pk == current.pk %}active{% endif %}" href="{% if kind == 'portfolio' %}{% url 'products:portfolio_detail' l.pk %}{% else %}{% url 'products:playarea_detail' l.pk %}{% endif %}">{{ l.name }} <span class="badge text-bg-secondary">{{ l.items.count }}</span></a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if kind == 'playarea' %}
+  <form method="post" action="{% url 'products:playarea_create' %}" class="d-flex gap-2">{% csrf_token %}
+    <input name="name" class="form-control form-control-sm" placeholder="New play area name" aria-label="New play area name">
+    <button class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-plus-lg"></i> New play area</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <h3 class="card-title me-auto">{{ current.name }}</h3>
+    {% if kind == 'portfolio' and playareas %}
+      <select id="copyTarget" class="form-select form-select-sm w-auto" aria-label="Copy to play area">
+        {% for p in playareas %}<option value="{{ p.pk }}">{{ p.name }}</option>{% endfor %}
+      </select>
+      <button id="btnCopy" class="btn btn-sm btn-outline-secondary">Copy selected to play area</button>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if rows %}
+      <table id="listTable" class="table table-sm table-striped w-100"></table>
+    {% else %}
+      <p class="text-body-secondary mb-0">This list is empty. Run a search in <a href="{% url 'analysis:home' %}">Analysis</a> and add products to it.</p>
+    {% endif %}
+  </div>
+</div>
+{{ rows|json_script:"list-rows" }}
+{% endblock %}
+{% block scripts %}
+<script>
+window.ListConfig = {
+  addUrl: "{% url 'products:add' %}",
+  noteUrl: "{% url 'products:item_note' 0 %}",
+  deleteUrl: "{% url 'products:item_delete' 0 %}",
+};
+</script>
+<script src="{% static 'js/lists.js' %}"></script>
+{% endblock %}

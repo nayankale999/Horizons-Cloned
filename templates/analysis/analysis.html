@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+{% block page_title %}Analysis – Launch New Products{% endblock %}
+{% block content %}
+<form id="searchForm" class="card mb-3" autocomplete="off">
+  <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+    <h3 class="card-title me-auto">Parameter search</h3>
+    <select id="savedSearch" class="form-select form-select-sm w-auto" aria-label="Saved searches">
+      <option value="">Saved searches…</option>
+      {% for s in saved_searches %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}
+    </select>
+    <button type="button" id="btnSaveSearch" class="btn btn-sm btn-outline-secondary">Save as new</button>
+    <button type="button" id="btnUpdateSearch" class="btn btn-sm btn-outline-secondary" disabled>Update</button>
+    <button type="button" id="btnDeleteSearch" class="btn btn-sm btn-outline-danger" disabled>Delete</button>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="f-product">Product / brand</label>
+        <input id="f-product" name="product" class="form-control" value="{{ request.GET.product }}" placeholder="Substance or brand name">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="f-regions">Regions</label>
+        <select id="f-regions" name="regions" class="form-select s2" multiple>
+          {% for r in regions %}<option value="{{ r.pk }}">{{ r.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="f-ind">Indications</label>
+        <select id="f-ind" name="indications" class="form-select s2" multiple>
+          {% for i in indications %}<option value="{{ i.pk }}">{{ i.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="f-dos">Dosage forms</label>
+        <select id="f-dos" name="dosages" class="form-select s2" multiple>
+          {% for d in dosages %}<option value="{{ d.pk }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="f-years">Year of</label>
+        <div class="input-group">
+          <select name="date_field" class="form-select" style="max-width: 50%" aria-label="Date field">
+            {% for code, label in date_fields %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+          </select>
+          <select id="f-years" name="years" class="form-select s2" multiple>
+            {% for y in years %}<option value="{{ y.name }}">{{ y.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="f-sol">Solubility</label>
+        <select id="f-sol" name="solubility" class="form-select s2" multiple>
+          {% for code, label in solubility_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <span class="form-label d-block">Revenue band</span>
+        {% for code, label, lo, hi in revenue_bands %}
+          <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="revenue" value="{{ code }}" id="rev-{{ code }}"><label class="form-check-label" for="rev-{{ code }}">{{ label }}</label></div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        <span class="form-label d-block">API manufacturers</span>
+        {% for code, label, lo, hi in api_bands %}
+          <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="apis" value="{{ code }}" id="api-{{ code }}"><label class="form-check-label" for="api-{{ code }}">{{ label }}</label></div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="f-kw">Keywords</label>
+        <select id="f-kw" name="keywords" class="form-select s2" multiple>
+          {% for k in keywords %}<option value="{{ k.pk }}">{{ k.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="f-exc">Excipients</label>
+        <select id="f-exc" name="excipients" class="form-select s2" multiple>
+          {% for e in excipients %}<option value="{{ e.pk }}">{{ e.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="my_org" value="1" id="f-myorg"><label class="form-check-label" for="f-myorg">Only products in my organisation's lists</label></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex flex-wrap gap-2">
+    <button type="submit" id="btnSearch" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+    <button type="reset" id="btnReset" class="btn btn-outline-secondary">Reset search</button>
+    <button type="button" id="btnReport" class="btn btn-outline-info ms-auto"><i class="bi bi-file-earmark-arrow-down"></i> Generate report</button>
+  </div>
+</form>
+
+<div id="noData" class="alert alert-secondary d-none"></div>
+
+<div id="results" class="d-none">
+  <div class="row g-3 mb-3">
+    <div class="col-xl-6"><div class="card h-100"><div class="card-header"><h3 class="card-title fs-6">Generic launches – expected value ($M)</h3></div><div class="card-body"><canvas id="chValue" height="200"></canvas></div></div></div>
+    <div class="col-xl-6"><div class="card h-100"><div class="card-header"><h3 class="card-title fs-6">Products going off-patent (nos.)</h3></div><div class="card-body"><canvas id="chOffPatent" height="200"></canvas></div></div></div>
+    <div class="col-xl-4"><div class="card h-100"><div class="card-header"><h3 class="card-title fs-6">Top 10 indications</h3></div><div class="card-body"><canvas id="chIndications" height="240"></canvas></div></div></div>
+    <div class="col-xl-4"><div class="card h-100"><div class="card-header"><h3 class="card-title fs-6">Dosage forms</h3></div><div class="card-body"><canvas id="chDosage" height="240"></canvas></div></div></div>
+    <div class="col-xl-4"><div class="card h-100"><div class="card-header"><h3 class="card-title fs-6">Revenue vs API manufacturers</h3></div><div class="card-body"><canvas id="chRevApi" height="240"></canvas></div></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+      <h3 class="card-title me-auto">Results <span id="resultCount" class="badge text-bg-secondary"></span></h3>
+      <select id="targetList" class="form-select form-select-sm w-auto" aria-label="Add selected to list">
+        {% for l in product_lists %}<option value="{{ l.pk }}">{{ l.get_kind_display }}: {{ l.name }}</option>{% endfor %}
+      </select>
+      <button type="button" id="btnAddToList" class="btn btn-sm btn-success" {% if not product_lists %}disabled title="Open My Portfolio or Play Area once to create a list"{% endif %}><i class="bi bi-plus-lg"></i> Add selected</button>
+    </div>
+    <div class="card-body"><table id="resultTable" class="table table-sm table-striped w-100"></table></div>
+  </div>
+</div>
+
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title fs-5" id="productModalTitle"></h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body" id="productModalBody"></div>
+  </div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+window.AnalysisConfig = {
+  urls: {
+    data: "{% url 'analysis:data' %}",
+    singleProduct: "{% url 'analysis:single_product' 0 %}",
+    savedGet: "{% url 'analysis:saved_get' 0 %}",
+    savedCreate: "{% url 'analysis:saved_create' %}",
+    savedUpdate: "{% url 'analysis:saved_update' 0 %}",
+    savedDelete: "{% url 'analysis:saved_delete' 0 %}",
+    addToList: "{% url 'products:add' %}",
+    generateReport: "{% url 'reports:generate' %}",
+  },
+  autoSearch: {{ request.GET.product|yesno:"true,false" }},
+};
+</script>
+<script src="{% static 'js/analysis.js' %}"></script>
+{% endblock %}
